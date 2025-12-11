@@ -6,8 +6,10 @@ import (
 	"testing"
 )
 
-func TestModerationService_CheckPost(t *testing.T) {
-	service := NewModerationService()
+func TestModerationService(t *testing.T) {
+	// Mock DB and ML? Or just pass nil if not used in unit test (if checking logic only)
+	// CheckPost uses keywords (no DB/ML), so nil is fine.
+	service := NewModerationService(nil, nil)
 	ctx := context.Background()
 
 	tests := []struct {

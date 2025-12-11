@@ -17,27 +17,132 @@ import (
 )
 
 type PostHandler struct {
-	postService *services.PostService
-	sse         *services.SSEService
+	postService    *services.PostService
+	commentService *services.CommentService
+	likeService    *services.LikeService
+	sse            *services.SSEService
 }
 
 // NewPostHandler creates a new PostHandler
-func NewPostHandler(ps *services.PostService, sse *services.SSEService) *PostHandler {
+func NewPostHandler(ps *services.PostService, cs *services.CommentService, ls *services.LikeService, sse *services.SSEService) *PostHandler {
 	return &PostHandler{
-		postService: ps,
-		sse:         sse,
+		postService:    ps,
+		commentService: cs,
+		likeService:    ls,
+		sse:            sse,
 	}
 }
 
 // RegisterPostRoutes attaches post routes to router
 func (h *PostHandler) RegisterPostRoutes(r *mux.Router, validator *utils.Validator) {
-	// The router 'r' passed here is already a subrouter on "/api"
-	// So we register "/communities/{community_id}/posts" directly
+	// Posts
 	r.HandleFunc("/communities/{community_id}/posts", h.createPost(validator)).Methods(http.MethodPost)
 	r.HandleFunc("/communities/{community_id}/posts", h.listPosts(validator)).Methods(http.MethodGet)
 	r.HandleFunc("/communities/{community_id}/posts/stream", h.streamPosts()).Methods(http.MethodGet)
 	r.HandleFunc("/posts/{post_id}", h.updatePost(validator)).Methods(http.MethodPut)
 	r.HandleFunc("/posts/{post_id}", h.deletePost()).Methods(http.MethodDelete)
+
+	// Comments
+	r.HandleFunc("/communities/{community_id}/posts/{post_id}/comments", h.createComment(validator)).Methods(http.MethodPost)
+	r.HandleFunc("/posts/{post_id}/comments", h.listComments()).Methods(http.MethodGet)
+
+	// Likes
+	r.HandleFunc("/posts/{post_id}/like", h.toggleLike()).Methods(http.MethodPost)
+
+	// Reports
+	r.HandleFunc("/posts/{post_id}/report", h.reportPost(validator)).Methods(http.MethodPost)
+}
+
+// ... streamPosts, createPost, listPosts, updatePost, deletePost existing methods ...
+
+// createComment handles POST /api/communities/{community_id}/posts/{post_id}/comments
+func (h *PostHandler) createComment(validator *utils.Validator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDVal := r.Context().Value("user_id")
+		if userIDVal == nil {
+			utils.ErrorResponseWithCode(w, http.StatusUnauthorized, "Unauthorized", config.ErrorAuthentication)
+			return
+		}
+		userID, _ := uuid.Parse(userIDVal.(string))
+
+		vars := mux.Vars(r)
+		communityID, _ := uuid.Parse(vars["community_id"])
+		postID, err := uuid.Parse(vars["post_id"])
+		if err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Invalid post id", config.ErrorValidation)
+			return
+		}
+
+		var req models.CreateCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Invalid JSON body", config.ErrorValidation)
+			return
+		}
+
+		if err := validator.ValidateStruct(req); err != nil {
+			utils.ValidationErrorResponse(w, err)
+			return
+		}
+
+		comment, err := h.commentService.CreateComment(r.Context(), communityID, postID, userID, req)
+		if err != nil {
+			if err.Error() == "comment blocked: violations detected" {
+				utils.ErrorResponseWithCode(w, http.StatusUnprocessableEntity, "Your comment was flagged for moderation.", config.ErrorValidation)
+				return
+			}
+			utils.ErrorResponseWithCode(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create comment: %v", err), config.ErrorInternal)
+			return
+		}
+
+		utils.SuccessResponse(w, http.StatusCreated, comment)
+	}
+}
+
+// listComments handles GET /api/posts/{post_id}/comments
+func (h *PostHandler) listComments() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		postID, err := uuid.Parse(vars["post_id"])
+		if err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Invalid post id", config.ErrorValidation)
+			return
+		}
+
+		comments, err := h.commentService.ListComments(r.Context(), postID)
+		if err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusInternalServerError, "Failed to fetch comments", config.ErrorInternal)
+			return
+		}
+
+		utils.SuccessResponse(w, http.StatusOK, comments)
+	}
+}
+
+// toggleLike handles POST /api/posts/{post_id}/like
+func (h *PostHandler) toggleLike() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDVal := r.Context().Value("user_id")
+		if userIDVal == nil {
+			utils.ErrorResponseWithCode(w, http.StatusUnauthorized, "Unauthorized", config.ErrorAuthentication)
+			return
+		}
+		userID, _ := uuid.Parse(userIDVal.(string))
+
+		vars := mux.Vars(r)
+		postID, err := uuid.Parse(vars["post_id"])
+		if err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Invalid post id", config.ErrorValidation)
+			return
+		}
+
+		resp, err := h.likeService.TogglePostLike(r.Context(), postID, userID)
+		if err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusInternalServerError, "Failed to toggle like", config.ErrorInternal)
+			return
+		}
+
+		utils.SuccessResponse(w, http.StatusOK, resp)
+	}
 }
 
 // streamPosts handles SSE connection for real-time posts
@@ -256,5 +361,50 @@ func (h *PostHandler) deletePost() http.HandlerFunc {
 		}
 
 		utils.SuccessResponse(w, http.StatusOK, map[string]string{"status": "deleted"})
+	}
+}
+
+// reportPost handles POST /api/posts/{post_id}/report
+func (h *PostHandler) reportPost(validator *utils.Validator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDVal := r.Context().Value("user_id")
+		if userIDVal == nil {
+			utils.ErrorResponseWithCode(w, http.StatusUnauthorized, "Unauthorized", config.ErrorAuthentication)
+			return
+		}
+		userID, _ := uuid.Parse(userIDVal.(string))
+
+		vars := mux.Vars(r)
+		postID, err := uuid.Parse(vars["post_id"])
+		if err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Invalid post id", config.ErrorValidation)
+			return
+		}
+
+		var req struct {
+			Reason string `json:"reason" validate:"required,min=3,max=200"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Invalid JSON body", config.ErrorValidation)
+			return
+		}
+
+		// Simple manual validation or use validator struct if I make a model
+		if len(req.Reason) < 3 {
+			utils.ErrorResponseWithCode(w, http.StatusBadRequest, "Reason too short", config.ErrorValidation)
+			return
+		}
+
+		err = h.postService.ReportPost(r.Context(), postID, userID, req.Reason)
+		if err != nil {
+			if err.Error() == "post not found" {
+				utils.ErrorResponseWithCode(w, http.StatusNotFound, "Post not found", config.ErrorNotFound)
+				return
+			}
+			utils.ErrorResponseWithCode(w, http.StatusInternalServerError, "Failed to report post", config.ErrorInternal)
+			return
+		}
+
+		utils.SuccessResponse(w, http.StatusOK, map[string]string{"status": "reported"})
 	}
 }

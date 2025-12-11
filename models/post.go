@@ -11,6 +11,7 @@ type CommunityPost struct {
 	ID               uuid.UUID `db:"id"`
 	CommunityID      uuid.UUID `db:"community_id"`
 	UserID           uuid.UUID `db:"user_id"`
+	EncryptedTitle   string    `db:"encrypted_title"` // Added
 	EncryptedContent string    `db:"encrypted_content"`
 	ContentType      string    `db:"content_type"`
 	ImageURL         *string   `db:"image_url"`
@@ -24,13 +25,15 @@ type CommunityPost struct {
 
 // CreatePostRequest is the incoming payload from frontend
 type CreatePostRequest struct {
+	Title       string  `json:"title" validate:"required,min=3,max=100"` // Added
 	Content     string  `json:"content" validate:"required,min=1,max=5000"`
-	ContentType string  `json:"content_type" validate:"required,oneof=text image"`
+	ContentType string  `json:"content_type" validate:"required,oneof=text image link"`
 	ImageURL    *string `json:"image_url,omitempty" validate:"omitempty,url"`
 }
 
 // UpdatePostRequest is the payload for updating a post
 type UpdatePostRequest struct {
+	Title    string  `json:"title" validate:"omitempty,min=3,max=100"` // Added
 	Content  string  `json:"content" validate:"required,min=1,max=5000"`
 	ImageURL *string `json:"image_url,omitempty" validate:"omitempty,url"`
 }
@@ -40,6 +43,7 @@ type PostResponse struct {
 	ID           uuid.UUID         `json:"id"`
 	CommunityID  uuid.UUID         `json:"community_id"`
 	UserID       uuid.UUID         `json:"user_id"`
+	Title        string            `json:"title"`   // Added
 	Content      string            `json:"content"` // decrypted
 	ContentType  string            `json:"content_type"`
 	ImageURL     *string           `json:"image_url,omitempty"`

@@ -1,7 +1,6 @@
-INFO:__main__:Loading model: Hate-speech-CNERG/english-abusive-MuRIL...
-Device set to use mps:0
-INFO:__main__:Model loaded successfully.
  * Tip: There are .env files present. Install python-dotenv to use them.
+Loading model: unitary/toxic-bert...
+Model loaded successfully.
  * Serving Flask app 'app'
  * Debug mode: off
 INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
@@ -9,23 +8,14 @@ INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a
  * Running on http://127.0.0.1:5001
  * Running on http://10.21.8.206:5001
 INFO:werkzeug:[33mPress CTRL+C to quit[0m
-INFO:__main__:Analyzed content: 'Automated test conte...' -> Label: LABEL_0, Score: 0.9912934899330139
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 18:51:41] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'I want to hurt mysel...' -> Label: LABEL_0, Score: 0.9738067388534546
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 18:51:43] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'You are stupid and I...' -> Label: LABEL_1, Score: 0.9355161786079407
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:01:39] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'I will doxx you soon...' -> Label: LABEL_0, Score: 0.9910916686058044
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:07:24] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'You are stupid. I ha...' -> Label: LABEL_1, Score: 0.967415988445282
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:34:13] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'You are stupid. I ha...' -> Label: LABEL_1, Score: 0.967415988445282
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:36:39] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'I really think we sh...' -> Label: LABEL_0, Score: 0.9910552501678467
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:44:05] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'To fix the memory le...' -> Label: LABEL_0, Score: 0.9913508892059326
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:44:07] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'I will doxx you and ...' -> Label: LABEL_0, Score: 0.9904802441596985
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:44:10] "POST /analyze HTTP/1.1" 200 -
-INFO:__main__:Analyzed content: 'You are a disgusting...' -> Label: LABEL_1, Score: 0.9835831522941589
-INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 19:44:14] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 20:17:01] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 20:48:20] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 20:50:46] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 20:50:47] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 20:50:48] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 21:04:07] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 21:04:08] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 21:04:11] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 21:38:02] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 21:38:03] "POST /analyze HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [11/Dec/2025 22:09:09] "POST /analyze HTTP/1.1" 200 -

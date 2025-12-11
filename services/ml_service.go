@@ -13,10 +13,15 @@ type MLService struct {
 	client  *http.Client
 }
 
-type AnalysisResponse struct {
-	IsAbusive       bool    `json:"is_abusive"`
-	ConfidenceScore float64 `json:"confidence_score"`
-	RawLabel        string  `json:"raw_label"`
+type MLAnalysisResponse struct {
+	IsAbusive       bool      `json:"is_abusive"`
+	ConfidenceScore float64   `json:"confidence_score"`
+	Flags           []FlagTag `json:"flags"`
+}
+
+type FlagTag struct {
+	Label string  `json:"label"`
+	Score float64 `json:"score"`
 }
 
 func NewMLService(baseURL string) *MLService {
@@ -30,26 +35,30 @@ func NewMLService(baseURL string) *MLService {
 	}
 }
 
-func (s *MLService) Analyze(content string) (*AnalysisResponse, error) {
+// AnalyzeContent sends content to Python sidecar
+func (s *MLService) AnalyzeContent(content string) (*MLAnalysisResponse, error) {
 	payload := map[string]string{"content": content}
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal payload: %w", err)
-	}
+	jsonData, _ := json.Marshal(payload)
 
-	resp, err := s.client.Post(s.BaseURL+"/analyze", "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", s.BaseURL+"/analyze", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("ml service request failed: %w", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ml service unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("ml service returned status: %s", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ml service error: %d", resp.StatusCode)
 	}
 
-	var result AnalysisResponse
+	var result MLAnalysisResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode ml response: %w", err)
+		return nil, fmt.Errorf("invalid response json: %w", err)
 	}
 
 	return &result, nil

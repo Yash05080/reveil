@@ -33,9 +33,15 @@ func NewPostService(db *sql.DB, enc *EncryptionService, mod *ModerationService, 
 // CreatePost stores an encrypted post for a community
 func (s *PostService) CreatePost(ctx context.Context, communityID, userID uuid.UUID, req models.CreatePostRequest) (*models.PostResponse, error) {
 	log.Println("DEBUG: Entering CreatePost")
-	// 1. Light Moderation Check
-	modResult, _ := s.mod.CheckPost(ctx, req.Content)
+	// 1. Light Moderation Check (Content AND Title)
+	// Checking title is important too
+	modResult, _ := s.mod.CheckPost(ctx, req.Title+" "+req.Content)
 	// We ignore error for now or log it, as per MVP.
+
+	encryptedTitle, err := s.enc.EncryptContent(communityID, req.Title)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt title failed: %w", err)
+	}
 
 	encryptedContent, err := s.enc.EncryptContent(communityID, req.Content)
 	if err != nil {
@@ -46,15 +52,16 @@ func (s *PostService) CreatePost(ctx context.Context, communityID, userID uuid.U
 	var post models.CommunityPost
 	err = s.db.QueryRowContext(ctx, `
 		INSERT INTO public.community_posts (
-			community_id, user_id, encrypted_content, content_type, image_url,
+			community_id, user_id, encrypted_title, encrypted_content, content_type, image_url,
 			like_count, comment_count, created_at, updated_at, is_edited, is_removed
-		) VALUES ($1, $2, $3, $4, $5, 0, 0, NOW(), NOW(), FALSE, FALSE)
-		RETURNING id, community_id, user_id, encrypted_content, content_type, image_url,
+		) VALUES ($1, $2, $3, $4, $5, $6, 0, 0, NOW(), NOW(), FALSE, FALSE)
+		RETURNING id, community_id, user_id, encrypted_title, encrypted_content, content_type, image_url,
 		          like_count, comment_count, created_at, updated_at, is_edited, is_removed
-	`, communityID, userID, encryptedContent, req.ContentType, req.ImageURL).Scan(
+	`, communityID, userID, encryptedTitle, encryptedContent, req.ContentType, req.ImageURL).Scan(
 		&post.ID,
 		&post.CommunityID,
 		&post.UserID,
+		&post.EncryptedTitle,
 		&post.EncryptedContent,
 		&post.ContentType,
 		&post.ImageURL,
@@ -109,12 +116,12 @@ func (s *PostService) UpdatePost(ctx context.Context, postID, userID uuid.UUID, 
 	// 1. Fetch existing post to get community_id (needed for encryption key) and verify ownership
 	var post models.CommunityPost
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, community_id, user_id, encrypted_content, content_type, image_url,
+		SELECT id, community_id, user_id, encrypted_title, encrypted_content, content_type, image_url,
 		       like_count, comment_count, created_at, updated_at, is_edited, is_removed
 		FROM public.community_posts
 		WHERE id = $1
 	`, postID).Scan(
-		&post.ID, &post.CommunityID, &post.UserID, &post.EncryptedContent, &post.ContentType, &post.ImageURL,
+		&post.ID, &post.CommunityID, &post.UserID, &post.EncryptedTitle, &post.EncryptedContent, &post.ContentType, &post.ImageURL,
 		&post.LikeCount, &post.CommentCount, &post.CreatedAt, &post.UpdatedAt, &post.IsEdited, &post.IsRemoved,
 	)
 	if err == sql.ErrNoRows {
@@ -132,7 +139,22 @@ func (s *PostService) UpdatePost(ctx context.Context, postID, userID uuid.UUID, 
 		return nil, fmt.Errorf("post is removed")
 	}
 
+	// 2.5 New Moderation Check on Edit
+	checkContent := req.Content
+	if req.Title != "" {
+		checkContent = req.Title + " " + req.Content
+	}
+	modResult, _ := s.mod.CheckPost(ctx, checkContent)
+
 	// 3. Encrypt new content
+	encryptedTitle := post.EncryptedTitle // Default to existing
+	if req.Title != "" {
+		encryptedTitle, err = s.enc.EncryptContent(post.CommunityID, req.Title)
+		if err != nil {
+			return nil, fmt.Errorf("encrypt title failed: %w", err)
+		}
+	}
+
 	newEncryptedContent, err := s.enc.EncryptContent(post.CommunityID, req.Content)
 	if err != nil {
 		return nil, fmt.Errorf("encrypt content failed: %w", err)
@@ -141,19 +163,67 @@ func (s *PostService) UpdatePost(ctx context.Context, postID, userID uuid.UUID, 
 	// 4. Update in DB
 	err = s.db.QueryRowContext(ctx, `
 		UPDATE public.community_posts
-		SET encrypted_content = $1, image_url = $2, is_edited = TRUE, updated_at = NOW()
-		WHERE id = $3
-		RETURNING id, community_id, user_id, encrypted_content, content_type, image_url,
+		SET encrypted_title = $1, encrypted_content = $2, image_url = $3, is_edited = TRUE, updated_at = NOW()
+		WHERE id = $4
+		RETURNING id, community_id, user_id, encrypted_title, encrypted_content, content_type, image_url,
 		          like_count, comment_count, created_at, updated_at, is_edited, is_removed
-	`, newEncryptedContent, req.ImageURL, postID).Scan(
-		&post.ID, &post.CommunityID, &post.UserID, &post.EncryptedContent, &post.ContentType, &post.ImageURL,
+	`, encryptedTitle, newEncryptedContent, req.ImageURL, postID).Scan(
+		&post.ID, &post.CommunityID, &post.UserID, &post.EncryptedTitle, &post.EncryptedContent, &post.ContentType, &post.ImageURL,
 		&post.LikeCount, &post.CommentCount, &post.CreatedAt, &post.UpdatedAt, &post.IsEdited, &post.IsRemoved,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("update post failed: %w", err)
 	}
 
+	// 5. Apply Moderation Flags (Edit could introduce toxicity)
+	if modResult.IsFlagged {
+		_, _ = s.db.ExecContext(ctx, `
+			INSERT INTO public.moderation_flags (
+				post_id, flag_reason, checked_by, action_taken,
+				severity_level, confidence_score, notified_moderator
+			) VALUES ($1, $2, $3, $4, $5, $6, FALSE)
+		`, post.ID, modResult.FlagReason, models.CheckedByLightModel, models.ActionMarked,
+			modResult.SeverityLevel, modResult.ConfidenceScore)
+	}
+
+	// 6. Trigger Heavy Analysis for Edit
+	if s.AsyncAnalysisChan != nil {
+		select {
+		case s.AsyncAnalysisChan <- post.ID:
+			// Queued
+		default:
+			// Queue full
+		}
+	}
+
 	return s.mapToResponse(ctx, post)
+}
+
+// ReportPost allows a user to flag a post
+func (s *PostService) ReportPost(ctx context.Context, postID, userID uuid.UUID, reason string) error {
+	// 1. Verify Post Exists
+	var exists bool
+	err := s.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM public.community_posts WHERE id=$1)", postID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("post not found")
+	}
+
+	// 2. Insert User Report
+	// We prefix reason with "Report: " to distinguish
+	_, err = s.db.ExecContext(ctx, `
+		INSERT INTO public.moderation_flags (
+			post_id, flag_reason, checked_by, action_taken,
+			severity_level, confidence_score, notified_moderator
+		) VALUES ($1, $2, 'user_report', 'reported', 1, 1.0, FALSE)
+	`, postID, "Report: "+reason)
+
+	if err != nil {
+		return fmt.Errorf("failed to report post: %w", err)
+	}
+	return nil
 }
 
 // DeletePost performs a soft delete
@@ -184,7 +254,7 @@ func (s *PostService) ListPosts(ctx context.Context, communityID uuid.UUID, q mo
 
 	args := []interface{}{communityID}
 	query := `
-		SELECT id, community_id, user_id, encrypted_content, content_type, image_url,
+		SELECT id, community_id, user_id, encrypted_title, encrypted_content, content_type, image_url,
 		       like_count, comment_count, created_at, updated_at, is_edited, is_removed
 		FROM public.community_posts
 		WHERE community_id = $1
@@ -219,6 +289,7 @@ func (s *PostService) ListPosts(ctx context.Context, communityID uuid.UUID, q mo
 			&p.ID,
 			&p.CommunityID,
 			&p.UserID,
+			&p.EncryptedTitle,
 			&p.EncryptedContent,
 			&p.ContentType,
 			&p.ImageURL,
@@ -241,6 +312,12 @@ func (s *PostService) ListPosts(ctx context.Context, communityID uuid.UUID, q mo
 }
 
 func (s *PostService) mapToResponse(ctx context.Context, p models.CommunityPost) (*models.PostResponse, error) {
+	title, err := s.enc.DecryptContent(p.CommunityID, p.EncryptedTitle)
+	if err != nil {
+		// Fallback for empty/legacy titles?
+		title = ""
+	}
+
 	content, err := s.enc.DecryptContent(p.CommunityID, p.EncryptedContent)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt failed: %w", err)
@@ -273,6 +350,7 @@ func (s *PostService) mapToResponse(ctx context.Context, p models.CommunityPost)
 		ID:           p.ID,
 		CommunityID:  p.CommunityID,
 		UserID:       p.UserID,
+		Title:        title,
 		Content:      content,
 		ContentType:  p.ContentType,
 		ImageURL:     p.ImageURL,

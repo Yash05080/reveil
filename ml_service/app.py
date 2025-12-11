@@ -1,53 +1,67 @@
 from flask import Flask, request, jsonify
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import logging
+import torch # Added import for torch
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "Hate-speech-CNERG/english-abusive-MuRIL"
+# Load model and tokenizer
+MODEL_NAME = "unitary/toxic-bert"
+print(f"Loading model: {MODEL_NAME}...")
 
-logger.info(f"Loading model: {MODEL_NAME}...")
 try:
-    # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
-    classifier = pipeline("text-classification", model=model, tokenizer=tokenizer)
-    logger.info("Model loaded successfully.")
+    print("Model loaded successfully.")
 except Exception as e:
-    logger.error(f"Failed to load model: {e}")
-    raise e
+    print(f"Failed to load model: {e}")
+    exit(1)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.json
-    if not data or 'content' not in data:
-        return jsonify({"error": "Missing 'content' field"}), 400
+    content = data.get('content', '')
+    
+    if not content:
+        return jsonify({'error': 'No content provided'}), 400
 
-    content = data['content']
     try:
-        # Run inference
-        # The model returns list of dicts: [{'label': 'LABEL_1', 'score': 0.99}]
-        # LABEL_0 usually non-abusive, LABEL_1 abusive (need to verify mapping for this specific model)
-        # Checking model card: "Class 0: Non-abusive, Class 1: Abusive" usually.
-        results = classifier(content)
-        result = results[0]
+        inputs = tokenizer(content, return_tensors="pt", truncation=True, max_length=512)
+        with torch.no_grad():
+            outputs = model(**inputs)
         
-        label = result['label']
-        score = result['score']
+        # specific to toxic-bert (multilabel classification usually)
+        # But unitary/toxic-bert output is typically logits for 6 classes:
+        # [toxic, severe_toxic, obscene, threat, insult, identity_hate]
+        probs = torch.sigmoid(outputs.logits).squeeze().tolist()
         
-        # Map generic LABEL_X to meaningful names if possible, or just return as is
+        labels = ["toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"]
+        
+        # Build list of flagged categories
+        results = []
         is_abusive = False
-        if label == "LABEL_1": # Assuming 1 is Abusive based on common practice for this dataset
-            is_abusive = True
-            
-        logger.info(f"Analyzed content: '{content[:20]}...' -> Label: {label}, Score: {score}")
+        max_score = 0.0
+        
+        for i, score in enumerate(probs):
+            if score > 0.5: # Threshold
+                results.append({
+                    "label": labels[i],
+                    "score": score
+                })
+                is_abusive = True
+                if score > max_score:
+                    max_score = score
+        
+        # Log safely
+        content_preview = content[:20] if content else ""
+        print(f"Analyzed: '{content_preview}...' -> Flags: {results}")
 
         return jsonify({
             "is_abusive": is_abusive,
-            "confidence_score": score,
-            "raw_label": label
+            "confidence_score": max_score,
+            "flags": results
         })
 
     except Exception as e:

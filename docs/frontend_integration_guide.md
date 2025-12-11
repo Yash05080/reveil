@@ -1,154 +1,130 @@
-# Reveil API: Frontend Integration Guide
+# Reveil API - Frontend Integration Guide
 
-## 1. Connection & Authentication
+## 1. Authentication
+The API relies on **Supabase Auth**.
 
-### Base URL
+### Headers
+Every request to the backend must include the `Authorization` header with a valid JWT from Supabase.
 ```
-http://localhost:8080/api
-```
-
-### Authentication
-All API requests (except `/health`) require a **JWT Token**.
-- **Header**: `Authorization: Bearer <YOUR_JWT_TOKEN>`
-- **Token Source**: Currently generated via `cmd/generate_token`. In production, this will come from Supabase Auth login.
-
-### Error Handling
-Common HTTP Status Codes:
-- `200 OK` / `201 Created`: Success.
-- `400 Bad Request`: Validation error (check `details` in JSON).
-- `401 Unauthorized`: Missing or invalid token.
-- `403 Forbidden`: Valid token but actions not allowed (e.g., deleting someone else's post).
-- `500 Internal Server Error`: Server-side issue.
-
----
-
-## 2. Key Data Models (TypeScript Interfaces)
-
-Use these interfaces to type your frontend responses.
-
-```typescript
-// The main Post object returned by the API
-interface Post {
-  id: string;
-  community_id: string;
-  user_id: string;
-  
-  // Decrypted content - display directly
-  content: string; 
-  content_type: 'text' | 'image';
-  image_url?: string;
-  
-  like_count: number;
-  comment_count: number;
-  
-  created_at: string; // ISO 8601
-  updated_at: string;
-  
-  is_edited: boolean;
-  is_removed: boolean;
-  
-  // Important: Present ONLY if the post was flagged
-  moderation?: ModerationStatus; 
-}
-
-interface ModerationStatus {
-  is_flagged: boolean;      // If true, show warning
-  flag_reason?: string;     // e.g., "Contains blocked phrase..."
-  severity_level?: number;  // 1-5 scale. 5 is highest.
-}
-
-interface APIResponse<T> {
-  success: boolean;
-  data: T;
-  error?: string;   // Present on failure
-  code?: string;    // App-specific error code
-}
+Authorization: Bearer <SUPABASE_JWT>
 ```
 
 ---
 
-## 3. Workflows & Endpoints
+## 2. Communities
+Community management is minimal for now.
 
-### A. Viewing the Feed (List Posts)
-**Endpoint**: `GET /communities/{community_id}/posts`
-
-**Query Params**:
-- `limit`: (Optional) Number of posts (Default: 20, Max: 50).
-- `before`: (Optional) Timestamp for pagination (load older posts).
-- `user_id`: (Optional) Filter by specific user.
-- `content_type`: (Optional) Filter by 'text' or 'image'.
-
-**Usage**:
-1. Encryption is transparent. The `content` field contains plain text.
-2. Check `post.moderation`. If present, overlay a warning (e.g., "This post may contain harmful content").
-3. **Pagination**: Take the `created_at` of the last post in the list and pass it as `before` in the next request.
+### **List Communities**
+`GET /api/communities`
+- **Response**: Array of communities.
+- **Usage**: Use `id` for creating posts.
 
 ---
 
-### B. Creating a Post
-**Endpoint**: `POST /communities/{community_id}/posts`
+## 3. Posts
+Posts are encrypted at rest. The API handles decryption before sending response to frontend (for MVP).
+**New**: All posts require a `title` and `content`.
 
-**Payload**:
+### **Create Post**
+`POST /api/communities/{community_id}/posts`
+
+- **Payload**:
 ```json
 {
-  "content": "Hello World",
-  "content_type": "text",
-  "image_url": "https://example.com/image.png" // Optional
+  "title": "My Post Title",         // [REQUIRED] Post Title
+  "content": "My post body text...", // [REQUIRED] Post Body
+  "content_type": "text",            // [REQUIRED] "text", "image", "link"
+  "image_url": "https://..."         // [OPTIONAL] Unencrypted URL for images
 }
 ```
 
-**Response (201 Created)**: Returns the created `Post` object.
-**Moderation Handling**:
-- **Light Model (Instant)**: If the response includes `moderation` (e.g., specific keywords), show the user an immediate warning: *"Your post was flagged for: [reason]"*.
-- **Heavy Model (Async)**: The post might be flagged *after* creation. Listen to SSE (see below) or refresh the feed to see updated flags.
-
----
-
-### C. Real-time Updates (SSE)
-**Endpoint**: `GET /communities/{community_id}/posts/stream`
-
-**Connection**:
-Use `EventSource` to listen for real-time updates (new posts).
-
-```javascript
-const sse = new EventSource(`http://localhost:8080/api/communities/${communityId}/posts/stream`);
-
-sse.onmessage = (event) => {
-  const payload = JSON.parse(event.data);
-  
-  if (payload.event_type === "post_created") {
-    const newPost = payload.payload; // This is a Post object
-    // Prepend 'newPost' to your feed list
+- **Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "title": "My Post Title",
+    "content": "My post body text...",
+    "image_url": "https://...",
+    "created_at": "...",
+    "moderation": { ... } // If flagged immediately (rare)
   }
-};
+}
 ```
 
+### **List Posts**
+`GET /api/communities/{community_id}/posts`
+- **QueryParams**: `limit` (default 20, max 50), `before` (timestamp for pagination).
+- **Response**: Array of Post Objects. Note: `title` and `content` are decrypted strings.
+
+### **Edit Post**
+`PUT /api/posts/{post_id}`
+- **Payload**:
+```json
+{
+  "title": "Updated Title", // [OPTIONAL]
+  "content": "Updated content..." // [REQUIRED]
+}
+```
+- **Behavior**: Updates trigger re-moderation. If toxic, response includes `moderation` flags.
+
+### **Delete Post**
+`DELETE /api/posts/{post_id}`
+
+### **Report Post**
+`POST /api/posts/{post_id}/report`
+- **Payload**: `{"reason": "Spam"}`
+
 ---
 
-## 4. Moderation UI Guidelines
+## 4. Comments
+Comments support infinite nesting via `parent_id`.
 
-Since the API supports dual-layer moderation, the frontend should reflect this:
+### **Create Comment**
+`POST /api/communities/{community_id}/posts/{post_id}/comments`
+- **Payload**:
+```json
+{
+  "content": "This is a comment",
+  "parent_id": "uuid" // [OPTIONAL] For nested replies
+}
+```
 
-1.  **Severity 5 (Blocked Phrases)**:
-    *   Consider blurring the content by default.
-    *   Show a red warning badge: "Violates Community Guidelines".
-    *   Display `flag_reason`.
+### **List Comments**
+`GET /api/communities/{community_id}/posts/{post_id}/comments`
+- **Response**: Flat list of comments.
+- **Frontend Logic**: You must reconstruct the tree using `id` and `parent_id`.
 
-2.  **Severity 3 (AI Flagged)**:
-    *   Show a yellow/orange warning icon.
-    *   Text: "Flagged by AI as potentially inappropriate".
-    *   Allow user to click "Show Content".
+---
 
-3.  **No Flag**:
-    *   Display normally.
+## 5. Likes
+`POST /api/posts/{post_id}/like`
+`POST /api/comments/{comment_id}/like`
+- Toggles like status. Returns updated count.
 
-## 5. Summary of Endpoints
+---
 
-| Method | URL | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Check API status (No Auth required). |
-| `GET` | `/communities/{id}/posts` | List posts (Feed). Pagination supported. |
-| `POST` | `/communities/{id}/posts` | Create new post. Triggers moderation. |
-| `PUT` | `/posts/{id}` | Update post content. |
-| `DELETE` | `/posts/{id}` | Soft delete post. |
-| `GET` | `/communities/{id}/posts/stream` | SSE stream for real-time posts. |
+## 6. Real-time (SSE)
+Connect to: `GET /api/events?community_id={id}`
+- Events: `post_created`, `comment_created`.
+
+---
+
+## 7. Moderation
+If a post is flagged (on create or edit), the response `data` will contain a `moderation` object:
+```json
+"moderation": {
+  "is_flagged": true,
+  "flag_reason": "Contains blocked phrase",
+  "severity_level": 5
+}
+```
+**UI Handling**: You should handle these flags (e.g., show warning, blur content).
+
+---
+
+## 8. Images
+- Use `image_url` field for images.
+- This field is **never encrypted**.
+- The `content` field is for the text body and **is encrypted**.

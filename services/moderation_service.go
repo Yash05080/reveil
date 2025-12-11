@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -10,16 +11,15 @@ import (
 
 // ModerationService handles content moderation
 type ModerationService struct {
-	// keywords []string // Removed in favor of moderation_list.go
+	db *sql.DB
+	ml *MLService
 }
 
 // NewModerationService creates a new ModerationService
-func NewModerationService() *ModerationService {
-	// Convert slice to map for O(1) lookups?
-	// Actually, strictly matching "phrases" requires substrings check, not exact word match.
-	// The previous implementation likely looped through options.
+func NewModerationService(db *sql.DB, ml *MLService) *ModerationService {
 	return &ModerationService{
-		// We'll use the package level variable BlockedPhrases in CheckPost
+		db: db,
+		ml: ml,
 	}
 }
 
@@ -28,6 +28,17 @@ func NewModerationService() *ModerationService {
 // CheckPost performs synchronous checks on post content
 // Returns: isFlagged (bool), reason (FlagReason), error
 func (s *ModerationService) CheckPost(ctx context.Context, content string) (*models.ModerationCheckResult, error) {
+	// 1. Check for specific restrictred keywords (Suicide/Self-harm)
+	if isRestricted, reason := s.containsRestrictedKeywords(content); isRestricted {
+		return &models.ModerationCheckResult{
+			IsFlagged:       true,
+			FlagReason:      reason,
+			SeverityLevel:   5,
+			ConfidenceScore: 1.0,
+			ShouldBlock:     true, // Typically we want to offer help resources, maybe block
+		}, nil
+	}
+
 	lowerContent := strings.ToLower(content)
 	for _, keyword := range BlockedPhrases {
 		if strings.Contains(lowerContent, keyword) {
