@@ -1,0 +1,45 @@
+# Binaries and intermediate files
+bin/
+obj/
+main
+*.exe
+*.dll
+*.so
+*.dylib
+*.class
+
+# Logs
+*.log
+server.log
+
+# Dependency Directories
+node_modules/
+__pycache__/
+*.pkl
+.gradle/
+.idea/
+.vscode/
+
+# Environment Variables & Secrets (CRITICAL)
+.env
+config.yaml
+secret.key
+*.pem
+*.key
+*.cert
+
+# Client Libs artifacts
+client_libs/js/node_modules/
+client_libs/python/.venv/
+client_libs/python/__pycache__/
+client_libs/dart/.dart_tool/
+client_libs/dart/.packages
+client_libs/dart/pubspec.lock
+
+# Go Specific
+go.sum
+# Keep go.mod
+
+# OS specific
+.DS_Store
+Thumbs.db
