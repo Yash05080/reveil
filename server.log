@@ -1,20 +1,51 @@
-2025/12/11 16:06:53 logger.go:33: [INFO] Starting Reveil API server [port 8080]
-2025/12/11 16:06:54 logger.go:33: [INFO] Connected to Supabase successfully []
-2025/12/11 16:06:54 logger.go:33: [INFO] Server starting [port 8080]
+2025/12/11 19:44:00 logger.go:33: [INFO] Starting Reveil API server [port 8080]
+2025/12/11 19:44:01 logger.go:33: [INFO] Connected to Supabase successfully []
+2025/12/11 19:44:01 [Worker] Heavy Moderation Worker Started
+2025/12/11 19:44:01 logger.go:33: [INFO] Server starting [port 8080]
 DEBUG: Validating Token Parts:
 Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1MzU4MTgsImlhdCI6MTc2NTQ0OTQxOCwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
-Signature: a4namYbZ1Z6yzoYN9K0UNnmjb__RKr2PCrcCN-JedsM
-2025/12/11 16:06:58 DEBUG: Entering CreatePost
-2025/12/11 16:06:59 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 855.467416ms user_agent Go-http-client/1.1 remote_addr [::1]:59874]
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1NDYyODEsImlhdCI6MTc2NTQ1OTg4MSwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: Q1gOjWFLd8IB3wskjA9eMywo9NYRt6hGp0fuDju2n4Y
+2025/12/11 19:44:02 DEBUG: Entering CreatePost
+2025/12/11 19:44:03 DEBUG: Queued post for heavy analysis
+2025/12/11 19:44:03 [Worker] Processing Post: 984b04bd-83cf-418a-aecc-986d22f09692
+2025/12/11 19:44:03 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 1.200843458s user_agent Go-http-client/1.1 remote_addr [::1]:50102]
+2025/12/11 19:44:05 [Worker] Analysis Result for 984b04bd-83cf-418a-aecc-986d22f09692: Abusive=false Score=0.99
 DEBUG: Validating Token Parts:
 Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1MzU4MTgsImlhdCI6MTc2NTQ0OTQxOCwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
-Signature: a4namYbZ1Z6yzoYN9K0UNnmjb__RKr2PCrcCN-JedsM
-2025/12/11 16:06:59 DEBUG: Entering CreatePost
-2025/12/11 16:07:00 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 1.13367425s user_agent Go-http-client/1.1 remote_addr [::1]:59874]
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1NDYyODEsImlhdCI6MTc2NTQ1OTg4MSwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: Q1gOjWFLd8IB3wskjA9eMywo9NYRt6hGp0fuDju2n4Y
+2025/12/11 19:44:05 DEBUG: Entering CreatePost
+2025/12/11 19:44:06 DEBUG: Queued post for heavy analysis
+2025/12/11 19:44:06 [Worker] Processing Post: 8767c38e-5a39-4daa-a5a8-b914f934371e
+2025/12/11 19:44:06 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 1.14263475s user_agent Go-http-client/1.1 remote_addr [::1]:50102]
+2025/12/11 19:44:07 [Worker] Analysis Result for 8767c38e-5a39-4daa-a5a8-b914f934371e: Abusive=false Score=0.99
 DEBUG: Validating Token Parts:
 Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1MzU4MTgsImlhdCI6MTc2NTQ0OTQxOCwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
-Signature: a4namYbZ1Z6yzoYN9K0UNnmjb__RKr2PCrcCN-JedsM
-2025/12/11 16:07:03 logger.go:33: [INFO] HTTP Request [method GET path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 200 duration 2.471432167s user_agent Go-http-client/1.1 remote_addr [::1]:59875]
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1NDYyODEsImlhdCI6MTc2NTQ1OTg4MSwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: Q1gOjWFLd8IB3wskjA9eMywo9NYRt6hGp0fuDju2n4Y
+2025/12/11 19:44:08 DEBUG: Entering CreatePost
+2025/12/11 19:44:10 DEBUG: Queued post for heavy analysis
+2025/12/11 19:44:10 [Worker] Processing Post: 5e2a56a4-e82e-4971-a44c-21092850426b
+2025/12/11 19:44:10 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 1.49909425s user_agent Go-http-client/1.1 remote_addr [::1]:50102]
+2025/12/11 19:44:10 [Worker] Analysis Result for 5e2a56a4-e82e-4971-a44c-21092850426b: Abusive=false Score=0.99
+DEBUG: Validating Token Parts:
+Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1NDYyODEsImlhdCI6MTc2NTQ1OTg4MSwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: Q1gOjWFLd8IB3wskjA9eMywo9NYRt6hGp0fuDju2n4Y
+2025/12/11 19:44:12 DEBUG: Entering CreatePost
+2025/12/11 19:44:13 DEBUG: Queued post for heavy analysis
+2025/12/11 19:44:13 [Worker] Processing Post: c9032588-b009-4824-b32a-032ceb7f3ae0
+2025/12/11 19:44:13 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 1.521626583s user_agent Go-http-client/1.1 remote_addr [::1]:50102]
+2025/12/11 19:44:14 [Worker] Analysis Result for c9032588-b009-4824-b32a-032ceb7f3ae0: Abusive=true Score=0.98
+2025/12/11 19:44:14 [Worker] FLAGGED Post c9032588-b009-4824-b32a-032ceb7f3ae0
+DEBUG: Validating Token Parts:
+Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1NDYyODEsImlhdCI6MTc2NTQ1OTg4MSwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: Q1gOjWFLd8IB3wskjA9eMywo9NYRt6hGp0fuDju2n4Y
+2025/12/11 19:44:19 logger.go:33: [INFO] HTTP Request [method GET path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 200 duration 4.124963125s user_agent Go-http-client/1.1 remote_addr [::1]:50102]
+DEBUG: Validating Token Parts:
+Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1NDYyODEsImlhdCI6MTc2NTQ1OTg4MSwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: Q1gOjWFLd8IB3wskjA9eMywo9NYRt6hGp0fuDju2n4Y
+2025/12/11 19:44:39 logger.go:33: [INFO] HTTP Request [method GET path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 200 duration 3.280318292s user_agent curl/8.7.1 remote_addr [::1]:50121]

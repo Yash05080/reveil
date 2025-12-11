@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"reveil-api/models"
@@ -9,30 +10,38 @@ import (
 
 // ModerationService handles content moderation
 type ModerationService struct {
-	// In the future, we might have DB access or external API clients here
+	// keywords []string // Removed in favor of moderation_list.go
 }
 
 // NewModerationService creates a new ModerationService
 func NewModerationService() *ModerationService {
-	return &ModerationService{}
+	// Convert slice to map for O(1) lookups?
+	// Actually, strictly matching "phrases" requires substrings check, not exact word match.
+	// The previous implementation likely looped through options.
+	return &ModerationService{
+		// We'll use the package level variable BlockedPhrases in CheckPost
+	}
 }
 
 // CheckPost performs synchronous checks on post content
 // Returns: isFlagged (bool), reason (FlagReason), error
-func (s *ModerationService) CheckPost(ctx context.Context, content string) (models.ModerationCheckResult, error) {
-	// 1. Keyword Check (Light Moderation)
-	if match, reason := s.containsRestrictedKeywords(content); match {
-		return models.ModerationCheckResult{
-			IsFlagged:       true,
-			FlagReason:      reason,
-			SeverityLevel:   5, // Max severity for restricted keywords
-			ConfidenceScore: 1.0,
-			ShouldBlock:     false, // We flag but allow (or allow but hide? Plan said flag silently)
-			// Actually, let's follow the plan: "Flag silently for now"
-		}, nil
+// CheckPost performs synchronous checks on post content
+// Returns: isFlagged (bool), reason (FlagReason), error
+func (s *ModerationService) CheckPost(ctx context.Context, content string) (*models.ModerationCheckResult, error) {
+	lowerContent := strings.ToLower(content)
+	for _, keyword := range BlockedPhrases {
+		if strings.Contains(lowerContent, keyword) {
+			return &models.ModerationCheckResult{
+				IsFlagged:       true,
+				FlagReason:      models.FlagReason(fmt.Sprintf("Contains blocked phrase: '%s'", keyword)),
+				SeverityLevel:   5, // High severity
+				ConfidenceScore: 1.0,
+				ShouldBlock:     false,
+			}, nil
+		}
 	}
 
-	return models.ModerationCheckResult{
+	return &models.ModerationCheckResult{
 		IsFlagged:       false,
 		ConfidenceScore: 0.0,
 	}, nil

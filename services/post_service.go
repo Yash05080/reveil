@@ -12,19 +12,21 @@ import (
 )
 
 type PostService struct {
-	db  *sql.DB
-	enc *EncryptionService
-	mod *ModerationService
-	sse *SSEService
+	db                *sql.DB
+	enc               *EncryptionService
+	mod               *ModerationService
+	sse               *SSEService
+	AsyncAnalysisChan chan<- uuid.UUID
 }
 
 // NewPostService creates a new PostService
-func NewPostService(db *sql.DB, enc *EncryptionService, mod *ModerationService, sse *SSEService) *PostService {
+func NewPostService(db *sql.DB, enc *EncryptionService, mod *ModerationService, sse *SSEService, asyncChan chan<- uuid.UUID) *PostService {
 	return &PostService{
-		db:  db,
-		enc: enc,
-		mod: mod,
-		sse: sse,
+		db:                db,
+		enc:               enc,
+		mod:               mod,
+		sse:               sse,
+		AsyncAnalysisChan: asyncChan,
 	}
 }
 
@@ -87,6 +89,16 @@ func (s *PostService) CreatePost(ctx context.Context, communityID, userID uuid.U
 	if err == nil {
 		// Only broadcast if we successfully mapped to response (decrypted)
 		s.sse.BroadcastPostCreated(communityID, post.ID, resp)
+	}
+
+	// 4. Trigger Heavy Analysis (Async)
+	if s.AsyncAnalysisChan != nil {
+		select {
+		case s.AsyncAnalysisChan <- post.ID:
+			log.Println("DEBUG: Queued post for heavy analysis")
+		default:
+			log.Println("WARN: Analysis queue full, skipping heavy moderation")
+		}
 	}
 
 	return resp, nil
@@ -233,6 +245,30 @@ func (s *PostService) mapToResponse(ctx context.Context, p models.CommunityPost)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt failed: %w", err)
 	}
+
+	// Fetch highest severity flag if exists
+	var modStatus *models.ModerationStatus
+	var flagReason string
+	var severityLevel int
+	err = s.db.QueryRowContext(ctx, `
+		SELECT flag_reason, severity_level 
+		FROM public.moderation_flags 
+		WHERE post_id = $1 
+		ORDER BY severity_level DESC 
+		LIMIT 1
+	`, p.ID).Scan(&flagReason, &severityLevel)
+
+	if err == nil {
+		modStatus = &models.ModerationStatus{
+			IsFlagged:     true,
+			FlagReason:    flagReason,
+			SeverityLevel: severityLevel,
+		}
+	} else if err != sql.ErrNoRows {
+		// Log error but don't fail the request
+		log.Printf("WARN: Failed to fetch flags for post %s: %v", p.ID, err)
+	}
+
 	return &models.PostResponse{
 		ID:           p.ID,
 		CommunityID:  p.CommunityID,
@@ -246,5 +282,6 @@ func (s *PostService) mapToResponse(ctx context.Context, p models.CommunityPost)
 		UpdatedAt:    p.UpdatedAt,
 		IsEdited:     p.IsEdited,
 		IsRemoved:    p.IsRemoved,
+		Moderation:   modStatus,
 	}, nil
 }
