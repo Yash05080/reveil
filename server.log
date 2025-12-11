@@ -1,0 +1,20 @@
+2025/12/11 16:06:53 logger.go:33: [INFO] Starting Reveil API server [port 8080]
+2025/12/11 16:06:54 logger.go:33: [INFO] Connected to Supabase successfully []
+2025/12/11 16:06:54 logger.go:33: [INFO] Server starting [port 8080]
+DEBUG: Validating Token Parts:
+Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1MzU4MTgsImlhdCI6MTc2NTQ0OTQxOCwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: a4namYbZ1Z6yzoYN9K0UNnmjb__RKr2PCrcCN-JedsM
+2025/12/11 16:06:58 DEBUG: Entering CreatePost
+2025/12/11 16:06:59 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 855.467416ms user_agent Go-http-client/1.1 remote_addr [::1]:59874]
+DEBUG: Validating Token Parts:
+Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1MzU4MTgsImlhdCI6MTc2NTQ0OTQxOCwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: a4namYbZ1Z6yzoYN9K0UNnmjb__RKr2PCrcCN-JedsM
+2025/12/11 16:06:59 DEBUG: Entering CreatePost
+2025/12/11 16:07:00 logger.go:33: [INFO] HTTP Request [method POST path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 201 duration 1.13367425s user_agent Go-http-client/1.1 remote_addr [::1]:59874]
+DEBUG: Validating Token Parts:
+Header: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+Payload: eyJjb21tdW5pdHlfaWQiOiJhYWFhYWFhMS1hYWFhLWFhYWEtYWFhYS1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3NjU1MzU4MTgsImlhdCI6MTc2NTQ0OTQxOCwicm9sZSI6InVzZXIiLCJzdWIiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ
+Signature: a4namYbZ1Z6yzoYN9K0UNnmjb__RKr2PCrcCN-JedsM
+2025/12/11 16:07:03 logger.go:33: [INFO] HTTP Request [method GET path /api/communities/aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa/posts status 200 duration 2.471432167s user_agent Go-http-client/1.1 remote_addr [::1]:59875]
