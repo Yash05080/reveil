@@ -112,12 +112,9 @@ We provide official encryption utilities for seamless frontend integration. Find
 - **Vulnerability Scanning**: Dependencies are kept minimal to reduce attack surface.
 - **Audit Logs**: Moderation actions are permanently logged in `moderation_flags`.
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <p align="center">
-  Built with ❤️ for a safer internet.
+  Built for a safer internet.
 </p>
